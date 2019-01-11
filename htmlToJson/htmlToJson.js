@@ -4,8 +4,7 @@ const {JSDOM} = jsdom;
 const path = require('path');
 const fs = require('fs');
 const subjectAboutInfo = require('../json/subjectAboutInfo.json').subjectAboutInfo
-
-
+const unitAndSubUnit = require('../json/unitAndSubUnit.json').unitAndSubUnit
 
 
 let choiceList = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
@@ -17,9 +16,9 @@ function dealSpace(str) {
   for (let i = 0, len = temp_arr.length; i < len; i++) {
     reg_str = reg_str + temp_arr[i] + "\\s*"
   }
-  if(str !== '适用学期'){
+  if (str !== '适用学期') {
     reg_str += "(:|：)?"
-  }else{
+  } else {
     reg_str += "(\\(|（)\\s*册\\s*(\\)|）)\\s*(:|：)?"
   }
 
@@ -43,65 +42,25 @@ function dealBracket(str) {
 }
 
 //获取试题的一些相关的属性
-function getItemProperty(str, primaryStr, jsonObj, index) {
-  if (str !== '考点11') {
-    return primaryStr.replace(dealBracket(str), '').trim()
-  } else {
-    let tempArr = primaryStr.replace(dealBracket(str), '').replace(/\s*/g, '').replace(/(．\S*|\.\S*|。\S*)/, '').replace(/:/g, '：').replace(/;/g, '；').split('；'),
-      ExaminationPoints = []
-    for (let i = 0, len = tempArr.length; i < len; i++) {
-      ExaminationPoints.push(tempArr[i].split('：')[1])
-    }
-    let knowledgePointList = []
-    let ExaminationPointsName = []
-    //高中数学（文/理）特殊处理
-    if(jsonObj.Subject.includes('高中数学')){
-      for(let i = 0, len = subjectAboutInfo.length; i < len; i++){
-        if(subjectAboutInfo[i].subjectName.includes('高中数学')){
-          knowledgePointList = knowledgePointList.concat(subjectAboutInfo[i].knowledgePointList)
-        }
-      }
-    }else{
-      for(let i = 0, len = subjectAboutInfo.length; i < len; i++){
-        if(jsonObj.Subject == subjectAboutInfo[i].subjectName){
-          knowledgePointList = subjectAboutInfo[i].knowledgePointList
-          break
-        }
-      }
-    }
-    let arr = []
-    if(ExaminationPoints.length > 0){
-      for(let i = 0, len = ExaminationPoints.length; i < len; i++){
-        for(let j = 0, len2 = knowledgePointList.length; j < len2; j++){
-          if(ExaminationPoints[i] == knowledgePointList[j].pointName){
-            arr.push(knowledgePointList[j].pointFid)
-            ExaminationPointsName.push(knowledgePointList[j].pointName)
-            break
-          }
-        }
-      }
-    }
-    jsonObj.question[index].ExaminationPointsName = ExaminationPointsName
-    return arr
-  }
+function getItemProperty(str, primaryStr) {
+  return primaryStr.replace(dealBracket(str), '').trim()
 }
 
 //进一步处理获取试题的一些相关的属性
 function dealProperty(jsonObj, key, value, add) {
-  console.log(add)
-  if(jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0'){
+  if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0') {
     let qLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question.length
-    if(add){
+    if (add) {
       jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question[qLength - 1][key] += value
-    }else{
+    } else {
       jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question[qLength - 1][key] = value
     }
-  }else if(jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '1'){
+  } else if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '1') {
     let briefLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children.length
     let qLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children[briefLength - 1].question.length
-    if(add){
-      //jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children[briefLength - 1].question[qLength - 1][key] += value
-    }else{
+    if (add) {
+      jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children[briefLength - 1].question[qLength - 1][key] += value
+    } else {
       jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children[briefLength - 1].question[qLength - 1][key] = value
     }
   }
@@ -186,40 +145,40 @@ function judgeIsOption(primaryStr) {
 }
 
 //选择题的进一步处理
-function dealOptions(jsonObj, primaryStr, curItemProperty, add) {
-  if(jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0'){
+function dealOptions(jsonObj, primaryStr, hasSubItem, add) {
+  if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0') {
     let qLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question.length
-    if(curItemProperty == 'SubItem'){
+    if (hasSubItem) {
       let subItemLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question[qLength - 1].SubQuestionList.length
-      if(add){
+      if (add) {
         let optionsLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question[qLength - 1].SubQuestionList[subItemLength - 1].Options.length
         jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question[qLength - 1].SubQuestionList[subItemLength - 1].Options[optionsLength - 1].Text += '<p>' + primaryStr + '</p>'
       } else {
         jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question[qLength - 1].SubQuestionList[subItemLength - 1].Options.push(dealChoice(primaryStr))
       }
-    }else{
-      if(add){
+    } else {
+      if (add) {
         let optionsLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question[qLength - 1].Options.length
         jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question[qLength - 1].Options[optionsLength - 1].Text += '<p>' + primaryStr + '</p>'
       } else {
         jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question[qLength - 1].Options.push(dealChoice(primaryStr))
       }
     }
-  }else if(jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '1'){
-    if(curItemProperty == 'SubItem'){
+  } else if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '1') {
+    if (hasSubItem) {
       let briefLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children.length
       let qLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children[briefLength - 1].question.length
       let subItemLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children[briefLength - 1].question[qLength - 1].SubQuestionList.length
-      if(add){
+      if (add) {
         let optionsLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children[briefLength - 1].question[qLength - 1].SubQuestionList[subItemLength - 1].Options.length
         jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children[briefLength - 1].question[qLength - 1].SubQuestionList[subItemLength - 1].Options[optionsLength - 1].Text += '<p>' + primaryStr + '</p>'
       } else {
         jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children[briefLength - 1].question[qLength - 1].SubQuestionList[subItemLength - 1].Options.push(dealChoice(primaryStr))
       }
-    }else{
+    } else {
       let briefLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children.length
       let qLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children[briefLength - 1].question.length
-      if(add){
+      if (add) {
         let optionsLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children[briefLength - 1].question[qLength - 1].Options
         jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children[briefLength - 1].question[qLength - 1].Options[optionsLength - 1].Text += '<p>' + primaryStr + '</p>'
       } else {
@@ -258,25 +217,11 @@ function dealChoice(primaryStr) {
   }
 }
 
-//处理题组题小题的一些属性问题
-function dealSubQuestion(jsonObj) {
-  //如果上一题是题组题，为上一题的小题添加应该有的属性
-  if (jsonObj.question.length > 0 && jsonObj.question[jsonObj.question.length - 1].SubQuestionList.length > 0) {
-    for (let i = 0, len = jsonObj.question[jsonObj.question.length - 1].SubQuestionList.length; i < len; i++) {
-      jsonObj.question[jsonObj.question.length - 1].SubQuestionList[i].Explain = jsonObj.question[jsonObj.question.length - 1].Explain
-      jsonObj.question[jsonObj.question.length - 1].SubQuestionList[i].Analysis = jsonObj.question[jsonObj.question.length - 1].Analysis
-      jsonObj.question[jsonObj.question.length - 1].SubQuestionList[i].Comments = jsonObj.question[jsonObj.question.length - 1].Comments
-      jsonObj.question[jsonObj.question.length - 1].SubQuestionList[i].Special_topics = jsonObj.question[jsonObj.question.length - 1].Special_topics
-      jsonObj.question[jsonObj.question.length - 1].SubQuestionList[i].Examination_points = jsonObj.question[jsonObj.question.length - 1].Examination_points
-    }
-  }
-}
-
 //获取题的类型   返回的是 Number
 function getItemType(primaryStr, itemTypeNum) {
-  if(primaryStr.trim().match(/^#\d+#$/) == null){
+  if (primaryStr.trim().match(/^#\d+#$/) == null) {
     return itemTypeNum
-  }else{
+  } else {
     let match = primaryStr.match(/^#\d+#$/)[0]
     return match.slice(1, match.length - 1)
   }
@@ -284,13 +229,13 @@ function getItemType(primaryStr, itemTypeNum) {
 
 //去掉题干或者选项中的正确答案 (英语专用)
 function filterAnswer(primaryStr) {
-  primaryStr.replace(/<u>\s*[A-Za-z]\s*<\/u>/g, '<u>&nbsp;&nbsp;&nbsp;&nbsp;</u>')
+  return primaryStr.replace(/<u>\s*[A-Za-z]\s*<\/u>/g, '<u>&nbsp;&nbsp;&nbsp;&nbsp;</u>')
 }
 
 //对题干断行的处理
 function dealItem(item, jsonObj, primaryStr) {
-  if(item == 'Item'){
-    if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0'){
+  if (item == 'Item') {
+    if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0') {
       let qLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question
       jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question[qLength - 1].Text += '<p>' + primaryStr + '</p>'
     } else if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '1') {
@@ -298,7 +243,7 @@ function dealItem(item, jsonObj, primaryStr) {
       jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children[jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children.length - 1].question[qLength - 1].Text += '<p>' + primaryStr + '</p>'
     }
   } else if (item == 'SubItem') {
-    if(jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0'){
+    if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0') {
       let qLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question.length
       let subQuestionLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question[qLength - 1].SubQuestionList.length
       jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question[qLength - 1].SubQuestionList[subQuestionLength - 1].Text += '<p>' + primaryStr + '</p>'
@@ -311,14 +256,162 @@ function dealItem(item, jsonObj, primaryStr) {
   }
 }
 
-//处理htmltojson函数
+//处理考点
+function dealExaminationPoints(primaryStr, jsonObj) {
+  let tempArr = primaryStr.replace(dealBracket('考点'), '').replace(/\s*/g, '').replace(/(．\S*|\.\S*|。\S*)/, '').replace(/:/g, '：').replace(/;/g, '；').split('；'), ExaminationPoints = []
+  for (let i = 0, len = tempArr.length; i < len; i++) {
+    ExaminationPoints.push(tempArr[i].split('：')[1])
+  }
+  let knowledgePointList = []
+  //考点对应的中文名称数组
+  let ExaminationPointsName = []
+  //高中数学（文/理）特殊处理
+  if (jsonObj.Subject.includes('高中数学')) {
+    for (let i = 0, len = subjectAboutInfo.length; i < len; i++) {
+      if (subjectAboutInfo[i].subjectName.includes('高中数学')) {
+        knowledgePointList = knowledgePointList.concat(subjectAboutInfo[i].knowledgePointList)
+      }
+    }
+  } else {
+    for (let i = 0, len = subjectAboutInfo.length; i < len; i++) {
+      if (jsonObj.Subject == subjectAboutInfo[i].subjectName) {
+        knowledgePointList = subjectAboutInfo[i].knowledgePointList
+        break
+      }
+    }
+  }
+  //考点对应的fid数组
+  let arr = []
+  if (ExaminationPoints.length > 0) {
+    for (let i = 0, len = ExaminationPoints.length; i < len; i++) {
+      for (let j = 0, len2 = knowledgePointList.length; j < len2; j++) {
+        if (ExaminationPoints[i] == knowledgePointList[j].pointName) {
+          arr.push(knowledgePointList[j].pointFid)
+          ExaminationPointsName.push(knowledgePointList[j].pointName)
+          break
+        }
+      }
+    }
+  }
+  return {
+    arr,
+    ExaminationPointsName
+  }
+}
+
+
+//对解析无误的jsonObj处理  (1，给小题添加Explain，Analysis，Comments，Special_topics，Examination_points   2，添加相应的rangeMin，rangeMax  3，对考点的处理  4，对必选字段的验证)
+function dealJsonObj(jsonObj, jsonArr, lackArr) {
+  let materialList = [], lackJsonObj = {titleArr: [], examPointsArr: []}, hasMaterial = false
+  for(let i = 0, len = unitAndSubUnit.length; i < len; i ++){
+    if(unitAndSubUnit[i].subjectName === jsonObj.Subject){
+      materialList = unitAndSubUnit[i].materialList
+    }
+  }
+  if(materialList.length === 0){
+    lackJsonObj.filename = jsonObj.filename
+    lackJsonObj.titleArr.push(`学段学科：${jsonObj.Subject}不和要求，匹配不到该学科`)
+  }else{
+    for(let i = 0, len = materialList.length; i < len; i ++){
+      if(materialList[i].materialName === jsonObj.Material){
+        hasMaterial = true
+      }
+    }
+  }
+  if(!hasMaterial){
+    lackJsonObj.titleArr.push(`教材版本：${jsonObj.Material}不和要求，匹配该试卷学科所对应的教材版本`)
+  }
+  if(!jsonObj.Term){
+    lackJsonObj.titleArr.push(`适用学期：${jsonObj.Term}不和要求，不能为空`)
+  }
+  if(jsonObj.Papertype !== '套卷'){
+    lackJsonObj.titleArr.push(`试卷类型：${jsonObj.Papertype}不和要求，只能为套卷`)
+  }
+  if(/^\s*\d(\.\d+)?/.test(jsonObj.Division)){
+    if(!(jsonObj.Division < 1 && jsonObj.Division > 0)){
+      lackJsonObj.titleArr.push(`区分度：${jsonObj.Division}不和要求，应为0到1数值`)
+    }
+  }else{
+    lackJsonObj.titleArr.push(`区分度：${jsonObj.Division}不和要求，应为0到1数值`)
+  }
+  if(!/^\s*\d+\s*$/.test(jsonObj.DiffcultyType)){
+    lackJsonObj.titleArr.push(`难度方案：${jsonObj.DiffcultyType}不和要求，应为整数值`)
+  }
+  if(/^\s*d(\.\d+)?/.test(jsonObj.Difficulty)){
+    if(!(jsonObj.Difficulty < 1 && jsonObj.Difficulty > 0)){
+      lackJsonObj.titleArr.push(`难度：${jsonObj.Difficulty}不和要求，应为0到1数值`)
+    }
+  }else{
+    lackJsonObj.titleArr.push(`难度：${jsonObj.Difficulty}不和要求，应为0到1的数值`)
+  }
+  let qIndex = 1
+  for (let i = 0, len = jsonObj.AllQuestionArr.length; i < len; i++) {
+    if(jsonObj.AllQuestionArr[i].hasChild == '0'){
+      let qLength = jsonObj.AllQuestionArr[i].question.length
+      jsonObj.AllQuestionArr[i].rangeMin = qIndex
+      jsonObj.AllQuestionArr[i].rangeMax = qIndex + qLength - 1
+      qIndex += qLength
+      for(let j = 0; j < qLength; j ++){
+        let pointsObj = dealExaminationPoints(jsonObj.AllQuestionArr[i].question[j].Examination_points, jsonObj)
+        jsonObj.AllQuestionArr[i].question[j].Examination_points = pointsObj.arr
+        if(jsonObj.AllQuestionArr[i].question[j].Examination_points.length === 0){
+          lackJsonObj.examPointsArr.push(`第${jsonObj.AllQuestionArr[i].question[j].Num}题的考点匹配不到，请在认真检查`)
+        }
+        jsonObj.AllQuestionArr[i].question[j].ExaminationPointsName = pointsObj.ExaminationPointsName
+        if(jsonObj.AllQuestionArr[i].question[j].SubQuestionList.length > 0){
+          let subQLength = jsonObj.AllQuestionArr[i].question[j].SubQuestionList.length
+          for(let k = 0; k < subQLength; k ++){
+            jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Explain = jsonObj.AllQuestionArr[i].question[j].Explain
+            jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Analysis = jsonObj.AllQuestionArr[i].question[j].Analysis
+            jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Comments = jsonObj.AllQuestionArr[i].question[j].Comments
+            jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Special_topics = jsonObj.AllQuestionArr[i].question[j].Special_topics
+            jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Examination_points = jsonObj.AllQuestionArr[i].question[j].Examination_points
+            jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].ExaminationPointsName = jsonObj.AllQuestionArr[i].question[j].ExaminationPointsName
+          }
+        }
+      }
+    }else if(jsonObj.AllQuestionArr[i].hasChild == '1'){
+      let briefLength = jsonObj.AllQuestionArr[i].children.length
+      jsonObj.AllQuestionArr[i].rangeMin = qIndex
+      let rangeMax = 0
+      for(let j = 0; j < briefLength; j ++){
+        rangeMax += jsonObj.AllQuestionArr[i].children[j].question.length
+      }
+      jsonObj.AllQuestionArr[i].rangeMax = qIndex + rangeMax - 1
+      for(let j = 0; j < briefLength; j ++){
+        let qLength = jsonObj.AllQuestionArr[i].children[j].question.length
+        jsonObj.AllQuestionArr[i].children[j].rangeMin = qIndex
+        jsonObj.AllQuestionArr[i].children[j].rangeMax = qIndex + qLength - 1
+        qIndex += qLength
+        for(let k = i; k < qLength; k ++){
+          let pointsObj = dealExaminationPoints(jsonObj.AllQuestionArr[i].children[j].question[k].Examination_points, jsonObj)
+          jsonObj.AllQuestionArr[i].children[j].question[k].Examination_points = pointsObj.arr
+          lackJsonObj.examPointsArr.push(`第${jsonObj.AllQuestionArr[i].children[j].question[k].Num}题的考点匹配不到，请在认真检查`)
+          jsonObj.AllQuestionArr[i].children[j].question[k].ExaminationPointsName = pointsObj.ExaminationPointsName
+          if(jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList.length > 0){
+            let subQLength = jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList.length
+            for(let m = 0; m < subQLength; m ++){
+              jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Explain = subQLength = jsonObj.AllQuestionArr[i].children[j].question[k].Explain
+              jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Analysis = subQLength = jsonObj.AllQuestionArr[i].children[j].question[k].Analysis
+              jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Comments = subQLength = jsonObj.AllQuestionArr[i].children[j].question[k].Comments
+              jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Special_topics = subQLength = jsonObj.AllQuestionArr[i].children[j].question[k].Special_topics
+              jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Examination_points = subQLength = jsonObj.AllQuestionArr[i].children[j].question[k].Examination_points
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+//处理htmlToJson函数
 function htmlToJson(res, originArr, myEmitter) {
   let docxArr = []
   let dir = originArr[0].dir
-  for(let i = 0, len = originArr.length; i < len; i++){
+  for (let i = 0, len = originArr.length; i < len; i++) {
     docxArr.push(originArr[i].path)
   }
-  let jsonArr = [], errArr = []  //成功解析和失败解析的列表
+  let jsonArr = [], errArr = [], lackArr = []  //成功解析和失败解析以及成功解析但是缺少必要属性的列表
   for (let i = 0, len = docxArr.length; i < len; i++) {
     let jsonObj = {
       Title: '',
@@ -370,6 +463,7 @@ function htmlToJson(res, originArr, myEmitter) {
         } else {
           primaryStr = $(document.body).children()[i].innerHTML
         }
+        primaryStr = primaryStr.replace(/菁优网版权所有/g, '')
         //整行为空时跳过
         if (!primaryStr) {
           continue
@@ -380,15 +474,16 @@ function htmlToJson(res, originArr, myEmitter) {
           break
         }
         //处理题的类型
-        itemTypeNum = getItemType(primaryStr,itemTypeNum)
+        if (/^#\d+#$/.test(primaryStr)) {
+          itemTypeNum = getItemType(primaryStr, itemTypeNum)
+          continue
+        }
         if ($(document.body).children()[i].tagName.toLowerCase() == 'p' || $(document.body).children()[i].tagName.toLowerCase() == 'table') {
           curLabel = 'p'
           if ($(document.body).children()[i].tagName.toLowerCase() == 'table') {
             curLabel = 'table'
             primaryStr = '<table class="defaultTableStyle">' + primaryStr + '</table>'
           }
-          //除了(h3和紧连着h3的h4)时为题组题状态其他则为非题组题状态
-          hasSubItem = false
           //先判断标题的一些信息
           if (/^\s*#\s*#/.test(primaryStr)) {
             curItemType = 'title'
@@ -468,11 +563,12 @@ function htmlToJson(res, originArr, myEmitter) {
             if (itemTypeNum == 1 || itemTypeNum == 2) {
               if (judgeIsOption(primaryStr)) {
                 curItemProperty = 'choice'
-                dealOptions(jsonObj, primaryStr, curItemProperty)
+                dealOptions(jsonObj, primaryStr, hasSubItem)
                 continue
               }
             }
             if (dealBracket('考点').test(primaryStr)) {
+              hasSubItem = false
               curItemProperty = 'Examination_points'
               let value = getItemProperty('考点', primaryStr)
               dealProperty(jsonObj, curItemProperty, value)
@@ -494,7 +590,7 @@ function htmlToJson(res, originArr, myEmitter) {
               dealProperty(jsonObj, curItemProperty, value)
             } else {
               if (curItemProperty == 'choice') {
-                dealOptions(jsonObj, primaryStr, curItemProperty, true)
+                dealOptions(jsonObj, primaryStr, hasSubItem, true)
               } else if (curItemProperty == 'Examination_points') {
                 let value = primaryStr
                 dealProperty(jsonObj, curItemProperty, value, true)
@@ -518,7 +614,7 @@ function htmlToJson(res, originArr, myEmitter) {
             }
           }
         } else if ($(document.body).children()[i].tagName.toLowerCase() == 'h1') {
-          if(curLabel != 'h1'){
+          if (curLabel != 'h1') {
             let part = {
               text: '<p>' + primaryStr + '</p>',
               children: [],
@@ -533,7 +629,7 @@ function htmlToJson(res, originArr, myEmitter) {
           }
           curLabel = 'h1'
         } else if ($(document.body).children()[i].tagName.toLowerCase() == 'h2') {
-          if( curLabel != 'h2' ){
+          if (curLabel != 'h2') {
             let brief = {
               text: '<p>' + primaryStr + '</p>',
               hasChild: '0',
@@ -565,7 +661,7 @@ function htmlToJson(res, originArr, myEmitter) {
                 Hide: jsonObj.IsHide,
                 Correct: jsonObj.IsTrue,
                 Checnote: '',
-                Text: '<p>' + getItemDes(primaryStr)+ '</p>',
+                Text: '<p>' + getItemDes(primaryStr) + '</p>',
                 Options: [],
                 Knowledge_points: [],
                 Explain: '',
@@ -583,13 +679,13 @@ function htmlToJson(res, originArr, myEmitter) {
                 IsCombination: 0,
                 SubQuestionList: []
               }
-              if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0'){
+              if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0') {
                 jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question.push(itemObj)
               } else if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '1') {
                 jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children[jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children.length - 1].question.push(itemObj)
               }
             } else {
-              if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0'){
+              if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0') {
                 let qLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question.length
                 jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question[qLength - 1].Text += '<p>' + primaryStr + '</p>'
               } else if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '1') {
@@ -600,10 +696,10 @@ function htmlToJson(res, originArr, myEmitter) {
           } else {
             //处理题组题的小题
             curItemProperty = 'SubItem'
-            if(getSubItemNum(primaryStr)){
+            if (getSubItemNum(primaryStr)) {
               let subItemObj = {
                 Question_Id: '',
-                Num:  getSubItemNum(primaryStr),
+                Num: getSubItemNum(primaryStr),
                 Fid: '',
                 Score: getSubScore(primaryStr),
                 Type: itemTypeNum,
@@ -631,7 +727,7 @@ function htmlToJson(res, originArr, myEmitter) {
                 IsCombination: 0,
                 SubQuestionList: []
               }
-              if(jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0'){
+              if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0') {
                 let qLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question.length
                 jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question[qLength - 1].SubQuestionList.push(subItemObj)
               } else if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '1') {
@@ -639,8 +735,8 @@ function htmlToJson(res, originArr, myEmitter) {
                 let qLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children[briefLength - 1].question.length
                 jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children[briefLength - 1].question[qLength - 1].SubQuestionList.push(subItemObj)
               }
-            }else{
-              if(jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0'){
+            } else {
+              if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0') {
                 let qLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question.length
                 let subQuestionLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question[qLength - 1].SubQuestionList.length
                 jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question[qLength - 1].SubQuestionList[subQuestionLength - 1].Text += '<p>' + primaryStr + '</p>'
@@ -689,13 +785,13 @@ function htmlToJson(res, originArr, myEmitter) {
               IsCombination: 1,
               SubQuestionList: []
             }
-            if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0'){
+            if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0') {
               jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question.push(itemObj)
             } else if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '1') {
               jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children[jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children.length - 1].question.push(itemObj)
             }
           } else {
-            if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0'){
+            if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0') {
               let qLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question.length
               jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question[qLength - 1].Text += '<p>' + primaryStr + '</p>'
             } else if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '1') {
@@ -706,11 +802,11 @@ function htmlToJson(res, originArr, myEmitter) {
           curLabel = 'h3'
         }
       }
-      //dealSubQuestion(jsonObj)
       jsonObj.localId = new Date().getTime()
       jsonObj.fileName = path.basename(docxArr[i], '.docx')
-      jsonArr.push(jsonObj)
-      if((jsonArr.length + errArr.length) === docxArr.length){
+      dealJsonObj(jsonObj, jsonArr, lackArr)
+      //jsonArr.push(jsonObj)
+      if ((jsonArr.length + errArr.length) === docxArr.length) {
         myEmitter.emit('success', {dir})
         res.send({
           jsonArr,
@@ -721,7 +817,7 @@ function htmlToJson(res, originArr, myEmitter) {
       .catch(err => {
         console.log(err)
         errArr.push({index: i, path: docxArr[i], fileName: path.basename(docxArr[i], '.docx')})
-        if((jsonArr.length + errArr.length) === docxArr.length){
+        if ((jsonArr.length + errArr.length) === docxArr.length) {
           myEmitter.emit('success', {dir})
           res.send({
             jsonArr,
