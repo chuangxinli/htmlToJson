@@ -3,6 +3,10 @@
 dist/electron/*
 dist/web/*
 src/renderer/api/fileOfJsonAndHtml
+errJson/
+fileOfJsonAndHtml/
+static/
+uploads/
 build/*
 !build/icons
 node_modules/

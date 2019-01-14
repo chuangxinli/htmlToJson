@@ -236,7 +236,7 @@ function filterAnswer(primaryStr) {
 function dealItem(item, jsonObj, primaryStr) {
   if (item == 'Item') {
     if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0') {
-      let qLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question
+      let qLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question.length
       jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question[qLength - 1].Text += '<p>' + primaryStr + '</p>'
     } else if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '1') {
       let qLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children[jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].children.length - 1].question.length
@@ -305,21 +305,84 @@ function dealJsonObj(jsonObj, jsonArr, lackArr) {
   let materialList = [], lackJsonObj = {titleArr: [], examPointsArr: []}, hasMaterial = false
   for(let i = 0, len = unitAndSubUnit.length; i < len; i ++){
     if(unitAndSubUnit[i].subjectName === jsonObj.Subject){
+      jsonObj.SubjectId = unitAndSubUnit[i].subjectId
+      jsonObj.Phase = unitAndSubUnit[i].phase
       materialList = unitAndSubUnit[i].materialList
     }
   }
   if(materialList.length === 0){
-    lackJsonObj.filename = jsonObj.filename
     lackJsonObj.titleArr.push(`学段学科：${jsonObj.Subject}不和要求，匹配不到该学科`)
   }else{
     for(let i = 0, len = materialList.length; i < len; i ++){
       if(materialList[i].materialName === jsonObj.Material){
+        jsonObj.MaterialId = materialList[i].materialId
         hasMaterial = true
       }
     }
   }
   if(!hasMaterial){
-    lackJsonObj.titleArr.push(`教材版本：${jsonObj.Material}不和要求，匹配该试卷学科所对应的教材版本`)
+    lackJsonObj.titleArr.push(`教材版本：${jsonObj.Material}不和要求，匹配不到当前试卷学科所对应的教材版本`)
+  }else{
+    let qIndex = 1
+    for (let i = 0, len = jsonObj.AllQuestionArr.length; i < len; i++) {
+      if(jsonObj.AllQuestionArr[i].hasChild == '0'){
+        let qLength = jsonObj.AllQuestionArr[i].question.length
+        jsonObj.AllQuestionArr[i].rangeMin = qIndex
+        jsonObj.AllQuestionArr[i].rangeMax = qIndex + qLength - 1
+        qIndex += qLength
+        for(let j = 0; j < qLength; j ++){
+          let pointsObj = dealExaminationPoints(jsonObj.AllQuestionArr[i].question[j].Examination_points, jsonObj)
+          jsonObj.AllQuestionArr[i].question[j].Examination_points = pointsObj.arr
+          if(jsonObj.AllQuestionArr[i].question[j].Examination_points.length === 0){
+            lackJsonObj.examPointsArr.push(`第${jsonObj.AllQuestionArr[i].question[j].Num}题的考点匹配不到，请在认真检查`)
+          }
+          jsonObj.AllQuestionArr[i].question[j].ExaminationPointsName = pointsObj.ExaminationPointsName
+          if(jsonObj.AllQuestionArr[i].question[j].SubQuestionList.length > 0){
+            let subQLength = jsonObj.AllQuestionArr[i].question[j].SubQuestionList.length
+            for(let k = 0; k < subQLength; k ++){
+              jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Explain = jsonObj.AllQuestionArr[i].question[j].Explain
+              jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Analysis = jsonObj.AllQuestionArr[i].question[j].Analysis
+              jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Comments = jsonObj.AllQuestionArr[i].question[j].Comments
+              jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Special_topics = jsonObj.AllQuestionArr[i].question[j].Special_topics
+              jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Examination_points = jsonObj.AllQuestionArr[i].question[j].Examination_points
+              jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].ExaminationPointsName = jsonObj.AllQuestionArr[i].question[j].ExaminationPointsName
+            }
+          }
+        }
+      }else if(jsonObj.AllQuestionArr[i].hasChild == '1'){
+        let briefLength = jsonObj.AllQuestionArr[i].children.length
+        jsonObj.AllQuestionArr[i].rangeMin = qIndex
+        let rangeMax = 0
+        for(let j = 0; j < briefLength; j ++){
+          rangeMax += jsonObj.AllQuestionArr[i].children[j].question.length
+        }
+        jsonObj.AllQuestionArr[i].rangeMax = qIndex + rangeMax - 1
+        for(let j = 0; j < briefLength; j ++){
+          let qLength = jsonObj.AllQuestionArr[i].children[j].question.length
+          jsonObj.AllQuestionArr[i].children[j].rangeMin = qIndex
+          jsonObj.AllQuestionArr[i].children[j].rangeMax = qIndex + qLength - 1
+          qIndex += qLength
+          for(let k = 0; k < qLength; k ++){
+            let pointsObj = dealExaminationPoints(jsonObj.AllQuestionArr[i].children[j].question[k].Examination_points, jsonObj)
+            jsonObj.AllQuestionArr[i].children[j].question[k].Examination_points = pointsObj.arr
+            if(jsonObj.AllQuestionArr[i].children[j].question[k].Examination_points.length === 0){
+              lackJsonObj.examPointsArr.push(`第${jsonObj.AllQuestionArr[i].children[j].question[k].Num}题的考点匹配不到，请在认真检查`)
+            }
+            jsonObj.AllQuestionArr[i].children[j].question[k].ExaminationPointsName = pointsObj.ExaminationPointsName
+            if(jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList.length > 0){
+              let subQLength = jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList.length
+              for(let m = 0; m < subQLength; m ++){
+                jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Explain= jsonObj.AllQuestionArr[i].children[j].question[k].Explain
+                jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Analysis = jsonObj.AllQuestionArr[i].children[j].question[k].Analysis
+                jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Comments = jsonObj.AllQuestionArr[i].children[j].question[k].Comments
+                jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Special_topics = jsonObj.AllQuestionArr[i].children[j].question[k].Special_topics
+                jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Examination_points = jsonObj.AllQuestionArr[i].children[j].question[k].Examination_points
+              }
+            }
+          }
+        }
+      }
+    }
   }
   if(!jsonObj.Term){
     lackJsonObj.titleArr.push(`适用学期：${jsonObj.Term}不和要求，不能为空`)
@@ -337,70 +400,20 @@ function dealJsonObj(jsonObj, jsonArr, lackArr) {
   if(!/^\s*\d+\s*$/.test(jsonObj.DiffcultyType)){
     lackJsonObj.titleArr.push(`难度方案：${jsonObj.DiffcultyType}不和要求，应为整数值`)
   }
-  if(/^\s*d(\.\d+)?/.test(jsonObj.Difficulty)){
+  if(/^\s*\d(\.\d+)?/.test(jsonObj.Difficulty)){
     if(!(jsonObj.Difficulty < 1 && jsonObj.Difficulty > 0)){
       lackJsonObj.titleArr.push(`难度：${jsonObj.Difficulty}不和要求，应为0到1数值`)
     }
   }else{
     lackJsonObj.titleArr.push(`难度：${jsonObj.Difficulty}不和要求，应为0到1的数值`)
   }
-  let qIndex = 1
-  for (let i = 0, len = jsonObj.AllQuestionArr.length; i < len; i++) {
-    if(jsonObj.AllQuestionArr[i].hasChild == '0'){
-      let qLength = jsonObj.AllQuestionArr[i].question.length
-      jsonObj.AllQuestionArr[i].rangeMin = qIndex
-      jsonObj.AllQuestionArr[i].rangeMax = qIndex + qLength - 1
-      qIndex += qLength
-      for(let j = 0; j < qLength; j ++){
-        let pointsObj = dealExaminationPoints(jsonObj.AllQuestionArr[i].question[j].Examination_points, jsonObj)
-        jsonObj.AllQuestionArr[i].question[j].Examination_points = pointsObj.arr
-        if(jsonObj.AllQuestionArr[i].question[j].Examination_points.length === 0){
-          lackJsonObj.examPointsArr.push(`第${jsonObj.AllQuestionArr[i].question[j].Num}题的考点匹配不到，请在认真检查`)
-        }
-        jsonObj.AllQuestionArr[i].question[j].ExaminationPointsName = pointsObj.ExaminationPointsName
-        if(jsonObj.AllQuestionArr[i].question[j].SubQuestionList.length > 0){
-          let subQLength = jsonObj.AllQuestionArr[i].question[j].SubQuestionList.length
-          for(let k = 0; k < subQLength; k ++){
-            jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Explain = jsonObj.AllQuestionArr[i].question[j].Explain
-            jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Analysis = jsonObj.AllQuestionArr[i].question[j].Analysis
-            jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Comments = jsonObj.AllQuestionArr[i].question[j].Comments
-            jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Special_topics = jsonObj.AllQuestionArr[i].question[j].Special_topics
-            jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Examination_points = jsonObj.AllQuestionArr[i].question[j].Examination_points
-            jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].ExaminationPointsName = jsonObj.AllQuestionArr[i].question[j].ExaminationPointsName
-          }
-        }
-      }
-    }else if(jsonObj.AllQuestionArr[i].hasChild == '1'){
-      let briefLength = jsonObj.AllQuestionArr[i].children.length
-      jsonObj.AllQuestionArr[i].rangeMin = qIndex
-      let rangeMax = 0
-      for(let j = 0; j < briefLength; j ++){
-        rangeMax += jsonObj.AllQuestionArr[i].children[j].question.length
-      }
-      jsonObj.AllQuestionArr[i].rangeMax = qIndex + rangeMax - 1
-      for(let j = 0; j < briefLength; j ++){
-        let qLength = jsonObj.AllQuestionArr[i].children[j].question.length
-        jsonObj.AllQuestionArr[i].children[j].rangeMin = qIndex
-        jsonObj.AllQuestionArr[i].children[j].rangeMax = qIndex + qLength - 1
-        qIndex += qLength
-        for(let k = i; k < qLength; k ++){
-          let pointsObj = dealExaminationPoints(jsonObj.AllQuestionArr[i].children[j].question[k].Examination_points, jsonObj)
-          jsonObj.AllQuestionArr[i].children[j].question[k].Examination_points = pointsObj.arr
-          lackJsonObj.examPointsArr.push(`第${jsonObj.AllQuestionArr[i].children[j].question[k].Num}题的考点匹配不到，请在认真检查`)
-          jsonObj.AllQuestionArr[i].children[j].question[k].ExaminationPointsName = pointsObj.ExaminationPointsName
-          if(jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList.length > 0){
-            let subQLength = jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList.length
-            for(let m = 0; m < subQLength; m ++){
-              jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Explain = subQLength = jsonObj.AllQuestionArr[i].children[j].question[k].Explain
-              jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Analysis = subQLength = jsonObj.AllQuestionArr[i].children[j].question[k].Analysis
-              jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Comments = subQLength = jsonObj.AllQuestionArr[i].children[j].question[k].Comments
-              jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Special_topics = subQLength = jsonObj.AllQuestionArr[i].children[j].question[k].Special_topics
-              jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Examination_points = subQLength = jsonObj.AllQuestionArr[i].children[j].question[k].Examination_points
-            }
-          }
-        }
-      }
-    }
+  if(lackJsonObj.titleArr.length > 0 || lackJsonObj.examPointsArr.length > 0){
+    lackJsonObj.fileName = jsonObj.fileName
+  }
+  if(lackJsonObj.fileName){
+    lackArr.push(lackJsonObj)
+  }else{
+    jsonArr.push(jsonObj)
   }
 }
 
@@ -435,6 +448,7 @@ function htmlToJson(res, originArr, myEmitter) {
       localId: '',
       AllQuestionArr: []
     }  //单个试卷的json对象
+    jsonObj.fileName = path.basename(docxArr[i], '.docx')
     let primaryStr = '' //p标签中的内容
     let curItemType = 'title' //分为 title single multiple blank resolve
     let itemTypeNum = 1 //1 单项选择题 2 多项选择题 3 填空题 4 解答题 5 判断题 6 题组题
@@ -463,7 +477,7 @@ function htmlToJson(res, originArr, myEmitter) {
         } else {
           primaryStr = $(document.body).children()[i].innerHTML
         }
-        primaryStr = primaryStr.replace(/菁优网版权所有/g, '')
+        primaryStr = primaryStr.replace(/(菁优网版权所有)|(菁优网：http:\/\/www\.jyeoo\.com)|(菁优网)|(http:\/\/www\.jyeoo\.com)/g, '')
         //整行为空时跳过
         if (!primaryStr) {
           continue
@@ -576,13 +590,13 @@ function htmlToJson(res, originArr, myEmitter) {
               curItemProperty = 'Special_topics'
               let value = getItemProperty('专题', primaryStr)
               dealProperty(jsonObj, curItemProperty, value)
-            } else if (dealBracket('分析').test(primaryStr)) {
-              curItemProperty = 'Explain'
-              let value = '<p>' + getItemProperty('分析', primaryStr) + '</p>'
-              dealProperty(jsonObj, curItemProperty, value)
             } else if (dealBracket('解答').test(primaryStr)) {
-              curItemProperty = 'Analysis'
+              curItemProperty = 'Explain'
               let value = '<p>' + getItemProperty('解答', primaryStr) + '</p>'
+              dealProperty(jsonObj, curItemProperty, value)
+            } else if (dealBracket('分析').test(primaryStr)) {
+              curItemProperty = 'Analysis'
+              let value = '<p>' + getItemProperty('分析', primaryStr) + '</p>'
               dealProperty(jsonObj, curItemProperty, value)
             } else if (dealBracket('点评').test(primaryStr)) {
               curItemProperty = 'Comments'
@@ -709,7 +723,7 @@ function htmlToJson(res, originArr, myEmitter) {
                 Hide: jsonObj.IsHide,
                 Correct: jsonObj.IsTrue,
                 Checnote: '',
-                Text: '<p>' + getSubItemDes(primaryStr) + '</p>',
+                Text: getSubItemDes(primaryStr) ? '<p>' + getSubItemDes(primaryStr) + '</p>' : '',
                 Options: [],
                 Knowledge_points: [],
                 Explain: '',
@@ -803,25 +817,27 @@ function htmlToJson(res, originArr, myEmitter) {
         }
       }
       jsonObj.localId = new Date().getTime()
-      jsonObj.fileName = path.basename(docxArr[i], '.docx')
       dealJsonObj(jsonObj, jsonArr, lackArr)
-      //jsonArr.push(jsonObj)
-      if ((jsonArr.length + errArr.length) === docxArr.length) {
+      myEmitter.emit('jsonObjSuccess', {jsonObj, temp})
+      if ((jsonArr.length + errArr.length + lackArr.length) === docxArr.length) {
         myEmitter.emit('success', {dir})
         res.send({
           jsonArr,
-          errArr
+          errArr,
+          lackArr
         })
       }
     })
       .catch(err => {
         console.log(err)
+        myEmitter.emit('error', {jsonObj})
         errArr.push({index: i, path: docxArr[i], fileName: path.basename(docxArr[i], '.docx')})
-        if ((jsonArr.length + errArr.length) === docxArr.length) {
+        if ((jsonArr.length + errArr.length + lackArr.length) === docxArr.length) {
           myEmitter.emit('success', {dir})
           res.send({
             jsonArr,
-            errArr
+            errArr,
+            lackArr
           })
         }
       })

@@ -30,9 +30,18 @@ let deleteFolder = function(path) {
   }
 };
 
-myEmitter.on('success', function (obj) {
-  deleteFolder(obj.dir)
-  /*let fileBaseName = path.basename(obj.path, '.docx')
+myEmitter.on('error', function (obj) {
+  //输出错误的json测试时看
+  /*writeFile(path.join(__dirname, `./errJson/${obj.jsonObj.fileName + '__' + new Date().getTime()}.json`), JSON.stringify(obj.jsonObj), err => {
+    console.log(err)
+    return
+  })
+  console.log(`errJson success!`)*/
+})
+
+myEmitter.on('jsonObjSuccess', function (obj) {
+  //输出json和html文件用来测试看
+  /*let fileBaseName = obj.jsonObj.fileName
   let time = new Date().getTime()
   writeFile(path.join(__dirname, `./fileOfJsonAndHtml/${time}__${obj.i + 1}__${fileBaseName}/${fileBaseName}.json`), JSON.stringify(obj.jsonObj), (err) => {
     if (err) {
@@ -48,6 +57,10 @@ myEmitter.on('success', function (obj) {
     }
     console.log('html_success！')
   })*/
+})
+
+myEmitter.on('success', function (obj) {
+  deleteFolder(obj.dir)
 })
 
 appExpress.use(busboy())
