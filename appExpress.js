@@ -43,14 +43,14 @@ myEmitter.on('jsonObjSuccess', function (obj) {
   //输出json和html文件用来测试看
   let fileBaseName = obj.jsonObj.fileName
   let time = new Date().getTime()
-  writeFile(path.join(__dirname, `./fileOfJsonAndHtml/${time}__${obj.i + 1}__${fileBaseName}/${fileBaseName}.json`), JSON.stringify(obj.jsonObj), (err) => {
+  writeFile(path.join(__dirname, `./fileOfJsonAndHtml/${time}__${fileBaseName}/${fileBaseName}.json`), JSON.stringify(obj.jsonObj), (err) => {
     if (err) {
       console.log(err)
       return
     }
     console.log('json_success！')
   })
-  writeFile(path.join(__dirname, `./fileOfJsonAndHtml/${time}__${obj.i + 1}__${fileBaseName}/${fileBaseName}.html`), obj.temp, (err) => {
+  writeFile(path.join(__dirname, `./fileOfJsonAndHtml/${time}__${fileBaseName}/${fileBaseName}.html`), obj.temp, (err) => {
     if (err) {
       console.log(err)
       return

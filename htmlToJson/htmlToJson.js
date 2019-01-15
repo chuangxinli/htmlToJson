@@ -233,7 +233,10 @@ function filterAnswer(primaryStr) {
 }
 
 //对题干断行的处理
-function dealItem(item, jsonObj, primaryStr) {
+function dealItem(item, jsonObj, primaryStr, removeAnswer) {
+  if(removeAnswer){
+    primaryStr = primaryStr.replace(/<u>[^<]*<\/u>/g, '<u>&nbsp;&nbsp;&nbsp;&nbsp;</u>')
+  }
   if (item == 'Item') {
     if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0') {
       let qLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question.length
@@ -335,12 +338,13 @@ function dealJsonObj(jsonObj, jsonArr, lackArr) {
           jsonObj.AllQuestionArr[i].question[j].Examination_points = pointsObj.arr
           jsonObj.AllQuestionArr[i].question[j].Knowledge_points = pointsObj.arr
           if(jsonObj.AllQuestionArr[i].question[j].Examination_points.length === 0){
-            lackJsonObj.examPointsArr.push(`第${jsonObj.AllQuestionArr[i].question[j].Num}题的考点匹配不到，请在认真检查`)
+            lackJsonObj.examPointsArr.push(`第${jsonObj.AllQuestionArr[i].question[j].Serial_num}题的考点匹配不到，请在认真检查`)
           }
           jsonObj.AllQuestionArr[i].question[j].ExaminationPointsName = pointsObj.ExaminationPointsName
           if(jsonObj.AllQuestionArr[i].question[j].SubQuestionList.length > 0){
             let subQLength = jsonObj.AllQuestionArr[i].question[j].SubQuestionList.length
             for(let k = 0; k < subQLength; k ++){
+              jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Combination_index = k + 1
               jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Explain = jsonObj.AllQuestionArr[i].question[j].Explain
               jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Analysis = jsonObj.AllQuestionArr[i].question[j].Analysis
               jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Comments = jsonObj.AllQuestionArr[i].question[j].Comments
@@ -369,12 +373,13 @@ function dealJsonObj(jsonObj, jsonArr, lackArr) {
             jsonObj.AllQuestionArr[i].children[j].question[k].Examination_points = pointsObj.arr
             jsonObj.AllQuestionArr[i].children[j].question[k].Knowledge_points = pointsObj.arr
             if(jsonObj.AllQuestionArr[i].children[j].question[k].Examination_points.length === 0){
-              lackJsonObj.examPointsArr.push(`第${jsonObj.AllQuestionArr[i].children[j].question[k].Num}题的考点匹配不到，请在认真检查`)
+              lackJsonObj.examPointsArr.push(`第${jsonObj.AllQuestionArr[i].children[j].question[k].Serial_num}题的考点匹配不到，请在认真检查`)
             }
             jsonObj.AllQuestionArr[i].children[j].question[k].ExaminationPointsName = pointsObj.ExaminationPointsName
             if(jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList.length > 0){
               let subQLength = jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList.length
               for(let m = 0; m < subQLength; m ++){
+                jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Combination_index = m + 1
                 jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Explain= jsonObj.AllQuestionArr[i].children[j].question[k].Explain
                 jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Analysis = jsonObj.AllQuestionArr[i].children[j].question[k].Analysis
                 jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Comments = jsonObj.AllQuestionArr[i].children[j].question[k].Comments
@@ -460,6 +465,7 @@ function htmlToJson(res, originArr, myEmitter) {
     let hasSubItem = false  //是否是题组题
     let curItemProperty = '' //分为 choice Examination_points Special_topics Explain Analysis Comments SubItem Item
     let curLabel = 'p'  //当前的标签
+    let removeAnswer = false //是否去除下划线上的文字
     mammoth.convertToHtml({path: docxArr[i]}, {
       styleMap: [
         "u => u",
@@ -491,6 +497,14 @@ function htmlToJson(res, originArr, myEmitter) {
         if (dealSpace('end').test(primaryStr)) {
           console.log('break 执行了！！！！')
           break
+        }
+        if(/^\s*#start#$/.test(primaryStr)){
+          removeAnswer = true
+          continue
+        }
+        if(/^\s*#end#/.test(primaryStr)){
+          removeAnswer = false
+          continue
         }
         //处理题的类型
         if (/^#\d+#$/.test(primaryStr)) {
@@ -626,9 +640,9 @@ function htmlToJson(res, originArr, myEmitter) {
                 let value = '<p>' + primaryStr + '</p>'
                 dealProperty(jsonObj, curItemProperty, value, true)
               } else if (curItemProperty == 'Item') {
-                dealItem('Item', jsonObj, primaryStr)
+                dealItem('Item', jsonObj, primaryStr, removeAnswer)
               } else if (curItemProperty == 'SubItem') {
-                dealItem('SubItem', jsonObj, primaryStr)
+                dealItem('SubItem', jsonObj, primaryStr, removeAnswer)
               }
             }
           }
@@ -670,7 +684,8 @@ function htmlToJson(res, originArr, myEmitter) {
             if (/^\d+(\.|。|．)/.test(primaryStr)) {
               let itemObj = {
                 Question_Id: '',
-                Num: getItemNum(primaryStr),
+                Num: '',
+                Serial_num: getItemNum(primaryStr),
                 Fid: '',
                 Score: getScore(primaryStr),
                 Type: itemTypeNum,
@@ -720,7 +735,8 @@ function htmlToJson(res, originArr, myEmitter) {
             if (getSubItemNum(primaryStr)) {
               let subItemObj = {
                 Question_Id: '',
-                Num: getSubItemNum(primaryStr),
+                Num: '',
+                Serial_num: getSubItemNum(primaryStr),
                 Fid: '',
                 Score: getSubScore(primaryStr),
                 Type: itemTypeNum,
@@ -780,7 +796,8 @@ function htmlToJson(res, originArr, myEmitter) {
           if (/^\d+(\.|。|．)/.test(primaryStr)) {
             let itemObj = {
               Question_Id: '',
-              Num: getItemNum(primaryStr),
+              Num: '',
+              Serial_num: getItemNum(primaryStr),
               Fid: '',
               Score: getScore(primaryStr),
               Type: '6',
@@ -810,7 +827,6 @@ function htmlToJson(res, originArr, myEmitter) {
               SubQuestionList: [],
               Knowledge_main_point: '',
               UseTag: ''
-
             }
             if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0') {
               jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question.push(itemObj)
