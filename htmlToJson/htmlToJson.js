@@ -286,7 +286,7 @@ function dealExaminationPoints(primaryStr, jsonObj) {
     for (let i = 0, len = ExaminationPoints.length; i < len; i++) {
       for (let j = 0, len2 = knowledgePointList.length; j < len2; j++) {
         if (ExaminationPoints[i] == knowledgePointList[j].pointName) {
-          arr.push(knowledgePointList[j].pointFid)
+          arr.push(knowledgePointList[j].pointId)
           ExaminationPointsName.push(knowledgePointList[j].pointName)
           break
         }
@@ -333,6 +333,7 @@ function dealJsonObj(jsonObj, jsonArr, lackArr) {
         for(let j = 0; j < qLength; j ++){
           let pointsObj = dealExaminationPoints(jsonObj.AllQuestionArr[i].question[j].Examination_points, jsonObj)
           jsonObj.AllQuestionArr[i].question[j].Examination_points = pointsObj.arr
+          jsonObj.AllQuestionArr[i].question[j].Knowledge_points = pointsObj.arr
           if(jsonObj.AllQuestionArr[i].question[j].Examination_points.length === 0){
             lackJsonObj.examPointsArr.push(`第${jsonObj.AllQuestionArr[i].question[j].Num}题的考点匹配不到，请在认真检查`)
           }
@@ -345,6 +346,7 @@ function dealJsonObj(jsonObj, jsonArr, lackArr) {
               jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Comments = jsonObj.AllQuestionArr[i].question[j].Comments
               jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Special_topics = jsonObj.AllQuestionArr[i].question[j].Special_topics
               jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Examination_points = jsonObj.AllQuestionArr[i].question[j].Examination_points
+              jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].Knowledge_points = jsonObj.AllQuestionArr[i].question[j].Knowledge_points
               jsonObj.AllQuestionArr[i].question[j].SubQuestionList[k].ExaminationPointsName = jsonObj.AllQuestionArr[i].question[j].ExaminationPointsName
             }
           }
@@ -365,6 +367,7 @@ function dealJsonObj(jsonObj, jsonArr, lackArr) {
           for(let k = 0; k < qLength; k ++){
             let pointsObj = dealExaminationPoints(jsonObj.AllQuestionArr[i].children[j].question[k].Examination_points, jsonObj)
             jsonObj.AllQuestionArr[i].children[j].question[k].Examination_points = pointsObj.arr
+            jsonObj.AllQuestionArr[i].children[j].question[k].Knowledge_points = pointsObj.arr
             if(jsonObj.AllQuestionArr[i].children[j].question[k].Examination_points.length === 0){
               lackJsonObj.examPointsArr.push(`第${jsonObj.AllQuestionArr[i].children[j].question[k].Num}题的考点匹配不到，请在认真检查`)
             }
@@ -377,6 +380,7 @@ function dealJsonObj(jsonObj, jsonArr, lackArr) {
                 jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Comments = jsonObj.AllQuestionArr[i].children[j].question[k].Comments
                 jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Special_topics = jsonObj.AllQuestionArr[i].children[j].question[k].Special_topics
                 jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Examination_points = jsonObj.AllQuestionArr[i].children[j].question[k].Examination_points
+                jsonObj.AllQuestionArr[i].children[j].question[k].SubQuestionList[m].Knowledge_points = jsonObj.AllQuestionArr[i].children[j].question[k].Knowledge_points
               }
             }
           }
@@ -445,6 +449,7 @@ function htmlToJson(res, originArr, myEmitter) {
       Spenttime: '',
       DiffcultyType: '',
       Difficulty: '',
+      ScopeDataStr: '',
       localId: '',
       AllQuestionArr: []
     }  //单个试卷的json对象
@@ -675,7 +680,7 @@ function htmlToJson(res, originArr, myEmitter) {
                 Hide: jsonObj.IsHide,
                 Correct: jsonObj.IsTrue,
                 Checnote: '',
-                Text: '<p>' + getItemDes(primaryStr) + '</p>',
+                Text: getItemDes(primaryStr) ? '<p>' + getItemDes(primaryStr) + '</p>' : '',
                 Options: [],
                 Knowledge_points: [],
                 Explain: '',
@@ -691,7 +696,9 @@ function htmlToJson(res, originArr, myEmitter) {
                 Examination_points: '',
                 From: jsonObj.Papersource,
                 IsCombination: 0,
-                SubQuestionList: []
+                SubQuestionList: [],
+                Knowledge_main_point: '',
+                UseTag: ''
               }
               if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0') {
                 jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question.push(itemObj)
@@ -739,7 +746,10 @@ function htmlToJson(res, originArr, myEmitter) {
                 Examination_points: '',
                 From: jsonObj.Papersource,
                 IsCombination: 0,
-                SubQuestionList: []
+                SubQuestionList: [],
+                Knowledge_main_point: '',
+                UseTag: '',
+                Combination_index: ''
               }
               if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0') {
                 let qLength = jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question.length
@@ -797,7 +807,10 @@ function htmlToJson(res, originArr, myEmitter) {
               From: jsonObj.Papersource,
               //为题组题所添加的属性
               IsCombination: 1,
-              SubQuestionList: []
+              SubQuestionList: [],
+              Knowledge_main_point: '',
+              UseTag: ''
+
             }
             if (jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].hasChild == '0') {
               jsonObj.AllQuestionArr[jsonObj.AllQuestionArr.length - 1].question.push(itemObj)
